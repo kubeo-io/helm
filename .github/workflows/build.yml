@@ -38,7 +38,7 @@ jobs:
           echo "Building Helm chart..."
           echo "${{ secrets.GH_TOKEN }}" | helm registry login ghcr.io -u ${{ secrets.GH_USERNAME }} --password-stdin
 
-          CHART_NAME="kubeo"
+          CHART_NAME="app"
           CHART_VERSION="${{ steps.version.outputs.version }}"
           echo "Packaging chart..."
           if [ -z "chart/${CHART_NAME}" ]; then
@@ -54,3 +54,14 @@ jobs:
 
           echo "Pushing chart to registry..."
           helm push ${CHART_NAME}-${CHART_VERSION}.tgz oci://ghcr.io/kubeo-io
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.16.0
+        with:
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          tag: ${{ steps.version.outputs.version_tag }}
+          name: ${{ steps.branch.outputs.releaseName }}
+          body: ${{ github.event.head_commit.message }}
+          token: ${{ secrets.GH_TOKEN }}

@@ -4,7 +4,7 @@
 
 | Template name | Description | Values.yaml tips |
 |---|---|---|
-| kubeo | Main template | [Configure](Configure.md) |
+| app | Main template | [Configure](Configure.md) |
 
 ## Test templates
 
