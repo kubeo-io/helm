@@ -35,15 +35,16 @@ jobs:
           
       - name: Build
         run: |
+          echp "Building Helm chart..."
           echo "${{ secrets.GH_TOKEN }} | helm registry login ghcr.io -u ${{ secrets.GH_USERNAME }} --password-stdin
 
-          CHART_NAME="kubeo-v1"
+          CHART_NAME="kubeo"
           CHART_VERSION="${{ steps.version.outputs.version }}"
           echo "Packaging chart..."
           if [ -z "chart/${CHART_NAME}" ]; then
               echo "Chart name is not provided. Exiting."
               exit 1
-          fi 
+          fi
 
           helm package chart/${CHART_NAME} --version ${CHART_VERSION} -d .
           if [ $? -ne 0 ]; then

@@ -1,5 +1,5 @@
 apiVersion: v2
-name: kubeo-v1
+name: kubeo
 description: Kubeo App Helm Chart
 type: application
 version: 1.0.1

@@ -4,8 +4,7 @@
 
 | Template name | Description | Values.yaml tips |
 |---|---|---|
-| ioops-template | Main template | [Configure](Configure.md) |
-| ioops-job | Job-only template | |
+| kubeo | Main template | [Configure](Configure.md) |
 
 ## Test templates
 
