@@ -1,0 +1,62 @@
+replicaCount: 1
+
+podLabels:
+  tags.datadoghq.com/env: hml
+  tags.datadoghq.com/service: consumer
+  admission.datadoghq.com/enabled: 'true'
+
+podAnnotations:
+  admission.datadoghq.com/java-lib.version: v1.47.3
+  ad.datadoghq.com/app.logs: |-
+    [{
+      "source": "java",
+      "service": "consumer",
+      "log_processing_rules": [{
+        "type": "exclude_at_match",
+        "name": "exclude_consumer_java_trace",
+        "pattern" : "TRACE"
+      }]
+    }] 
+image:
+  repository: app/consumer
+  tag: latest
+  pullPolicy: Always
+
+containers:
+  - name: consumer
+
+serviceAccount:
+  create: true
+  name: kafka-consumer
+
+annotations:
+  app.kubernetes.io/name: consumer
+  app.kubernetes.io/version: latest
+  app.kubernetes.io/environment: prod
+
+
+persistence:
+  volumes:
+    - name: kafka-ssl-store
+      configMap:
+        name: kafka-ssl-store
+
+  mounts:
+    - mountPath: /app/conf/ssl
+      name: kafka-ssl-store
+
+    - mountPath: /etc/ssl/certs/kafka-ca.pem
+      name: kafka-ssl-store
+      subPath: caroot
+
+env:
+  - name: JAVA_OPTS
+    value: "-Xms1G -Xmx2G"
+
+ingress:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080

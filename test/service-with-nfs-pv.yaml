@@ -1,0 +1,90 @@
+
+image:
+  repository: registry/service
+  tag: latest
+  pullPolicy: Always
+ 
+ 
+imagePullSecrets:
+  - name: my-registry
+
+podLabels:
+  tags.datadoghq.com/env: oke-prd
+  tags.datadoghq.com/service: my-service
+
+env:
+  - name: DD_AGENT_HOST
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: DD_ENV
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/env']
+  - name: DD_SERVICE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/service']
+  - name: DD_PROFILING_ENABLED
+    value: "true"
+
+persistence:
+  volumes:
+    - name: service-env
+      configMap:
+        name: service-env
+    - name: tnsnames
+      configMap:
+        name: tnsnames.ora
+
+  storage:
+    - name: nfs-pv-1
+      type: pvc
+      capacity: 10Gi
+      accessMode: ReadWriteMany
+      storageClassName: fss-dyn-storage
+
+    - name: nfs-pv-2
+      type: pvc
+      capacity: 10Gi
+      accessMode: ReadWriteMany
+      storageClassName: fss-dyn-storage
+
+containers:
+  - name: nginx
+  - name: php-fpm
+    ports:
+      - containerPort: 8080
+      - containerPort: 8081
+
+    volumeMounts:
+      - name: service-env
+        mountPath: /var/www/.env
+        subPath: env
+
+      - name: nfs-pv-1
+        mountPath: /var/www/data
+
+      - name: nfs-pv-2
+        mountPath: /var/www/storage/app/tmp
+
+      - name: tnsnames
+        mountPath: /opt/oracle/instantclient_12_2/network/admin/tnsnames.ora
+        subPath: tnsnames.ora
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  tls:
+      enabled: true
+      secretName: star.app.example.com
+
+vpa:
+  enabled: false
+  updateMode: "Off"
+
+service:
+  type: ClusterIP
+  ports: 
+    - port: 8080
+    - port: 8081

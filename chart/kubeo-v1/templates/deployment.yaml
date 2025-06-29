@@ -1,0 +1,461 @@
+{{- $fullName := include "chart.fullname" . }}
+{{- if .Values.containers -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    {{- if .Values.podLabels }}
+    {{ toYaml .Values.podLabels | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if and (.Values.hpa) (.Values.hpa.enabled) }}
+  replicas: {{ .Values.hpa.minReplicas | default 1 }}
+  {{- else }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+{{- if .Values.updateStrategy }}
+  strategy:
+{{ toYaml .Values.updateStrategy | indent 4 }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chart.labels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{ toYaml .Values.podLabels | nindent 8 }}
+        {{- end }}
+      annotations:
+        timestamp: "{{ date "20060102150405" now }}"
+
+{{- if .Values.vault }}
+
+{{- if and (eq .Values.vault.enabled true) (eq .Values.vault.type "hashicorp")  }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-default-template: "json"
+        vault.hashicorp.com/role: "{{ .Values.vault.role }}"
+        {{- if and (.Values.vault.activeSync) (eq .Values.vault.activeSync true)  }}
+        vault.hashicorp.com/agent-pre-populate-only: "false"
+        {{- else }}
+        vault.hashicorp.com/agent-pre-populate-only: "true"
+        {{- end }}
+        vault.hashicorp.com/agent-init-first: "true"
+        {{- $c := 0 | int }}
+        {{- range .Values.vault.secrets }}
+        {{- $c = add1 $c }}
+        vault.hashicorp.com/agent-inject-secret-{{ $c }}: "{{ . }}"
+
+        {{- if eq $.Values.vault.format "export"  }}
+        vault.hashicorp.com/agent-inject-template-{{ $c }}: |
+          {{`{{- with secret "`}}{{- . }}{{`" }}
+          {{- range $k, $v := .Data.data }}
+          export {{ $k }}={{ $v }}
+          {{- end }}
+          {{- end }}`}}
+        {{- end }}
+
+        {{- if eq $.Values.vault.format "keyvalue"  }}
+        vault.hashicorp.com/agent-inject-command-{{ $c }}: "cat /vault/secrets/{{ $c }} >> /vault/secrets/.env"
+        vault.hashicorp.com/agent-inject-template-{{ $c }}: |
+          {{`{{- with secret "`}}{{- . }}{{`" }}
+          {{- range $k, $v := .Data.data }}
+          {{ $k }}={{ $v }}
+          {{- end }}
+          {{- end }}`}}
+        {{- end }}
+
+        {{- end }}
+        
+{{- end }}
+
+{{- end }}
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | nindent 8 }}
+{{- end }}
+{{- if .Values.annotations }}
+{{ toYaml .Values.podAnnotations | nindent 8 }}
+{{- end }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default .Values.default.serviceAccountName }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+
+      {{- if .Values.initContainers }}
+      initContainers:
+      {{- range .Values.initContainers }}
+        - name: {{ .name }}
+          securityContext:
+            {{- if .securityContext }}
+            {{- toYaml .securityContext | nindent 12 }}
+            {{- else if $.Values.securityContext }}
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+            {{- end }}
+
+          {{- if .image }}
+          {{- $localImage := .image }}
+          {{- if kindIs "map" .image }}
+          {{- $localImage = "" }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "registry") }}
+          {{- $localImage = printf "%s/" .image.registry }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "repository") }}
+          {{- $localImage = printf "%s%s" $localImage .image.repository }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "tag") }}
+          {{- $localImage = printf "%s:%s" $localImage .image.tag }}
+          {{- end }}
+          image: "{{ $localImage }}"
+          {{- if and (kindIs "map" .image) (hasKey .image "pullPolicy") }}
+          imagePullPolicy: {{ .image.pullPolicy | default $.Values.image.pullPolicy }}
+          {{- else }}
+          imagePullPolicy: {{ .imagePullPolicy | default $.Values.image.pullPolicy }}
+          {{- end }}
+          {{- else }}
+          {{- $imageRegistry := $.Values.image.registry | default "" }}
+          {{- $imageRepository := $.Values.image.repository | default "" }}
+          {{- if $imageRegistry }}
+          {{- $imageRepository = printf "%s/%s" $imageRegistry $.Values.image.repository }}
+          {{- end }}
+          {{- $imageTag := $.Values.image.tag | default "latest" }}
+          image: "{{ $imageRepository }}:{{ $imageTag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- end }}
+
+          {{- if .args }}
+          args:
+            {{- toYaml .args | nindent 12 }}
+          {{- end }}
+
+          {{- if .command }}
+          command:
+            {{- toYaml .command | nindent 12 }}
+          {{- end }}
+
+          env:
+          {{- if $.Values.secretManager.enabled }}
+          {{- range $.Values.secretManager.secrets }}
+          {{- $secretName := .name | lower | replace "/" "-" }}
+          {{- range .env }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name:  {{ $secretName }}
+                  key: {{ .key | default .name }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+
+          {{- with $.Values.env }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .env }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          resources:
+            {{- if .resources }}
+            {{- toYaml .resources | nindent 12 }}
+            {{- else if $.Values.resources }}
+            {{- toYaml $.Values.resources | nindent 12 }}
+            {{- end }}
+
+          volumeMounts:
+            {{- if $.Values.secretManager.enabled }}
+            {{- range $.Values.secretManager.secrets }}
+            {{- $secretName := .name | lower | replace "/" "-" }}
+            {{- range .mount }}
+            - name: {{ $secretName }}-{{ .name }}
+              mountPath: {{ .path }}
+              subPath: {{ .key | default .name }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if $.Values.config }}
+            {{- range $.Values.config }}
+            {{- if .mountPath }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .name }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if $.Values.persistence.mounts }}
+            {{- range $.Values.persistence.mounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              {{- if .readOnly }}
+              readOnly: {{ .readOnly }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .volumeMounts }}
+            {{- toYaml .volumeMounts | nindent 12 }} 
+            {{- end }}
+
+      {{- end }}
+      {{- end }}
+
+      {{- $containerId := 0 | int }}
+      containers:
+      {{- range .Values.containers }}
+      {{- $containerId = add1 $containerId }}
+      {{- $containerEnabled := false }}
+      {{- $containerName := .name }}
+
+      {{/* Check if container is enabled */}}
+      {{- if and ($.Values.default.enabledContainers) (or (eq $.Values.default.enabledContainers .name) (eq $.Values.default.enabledContainers "*")) }}
+        {{- $containerEnabled = true }}
+      {{- else if contains ":" $.Values.default.enabledContainers }}
+        {{- $defined := false }}
+        {{- range regexSplit ":" $.Values.default.enabledContainers -1 }}
+          {{- if and (eq $containerName .) (not $defined) }}
+          {{- $defined = true }}
+          {{- $containerEnabled = true }}
+          {{- end }}
+        {{- end }}
+      {{- else if contains "," $.Values.default.enabledContainers }}
+        {{- $defined := false }}
+        {{- range regexSplit "," $.Values.default.enabledContainers -1 }}
+        {{- if and (eq $containerName .) (not $defined) }}
+          {{- $defined = true }}
+          {{- $containerEnabled = true }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+
+      {{/* Check if container is disabled */}}
+      {{- if $.Values.default.disabledContainers }}
+        {{- if eq $.Values.default.disabledContainers $containerName }}
+          {{- $containerEnabled = false }}
+        {{- else if contains ":" $.Values.default.disabledContainers }}
+          {{- $defined := false }}
+          {{- range regexSplit ":" $.Values.default.disabledContainers -1 }}
+            {{- if and (eq $containerName .) (not $defined) }}
+            {{- $defined = true }}
+            {{- $containerEnabled = false }}
+            {{- end }}
+          {{- end }}
+        {{- else if contains "," $.Values.default.disabledContainers }}
+          {{- $defined := false }}
+          {{- range regexSplit "," $.Values.default.disabledContainers -1 }}
+          {{- if and (eq $containerName .) (not $defined) }}
+            {{- $defined = true }}
+            {{- $containerEnabled = false }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+
+      {{- if $containerEnabled }}
+
+        - name: {{ .name }}
+          securityContext:
+            {{- if .securityContext }}
+            {{- toYaml .securityContext | nindent 12 }}
+            {{- else if $.Values.securityContext }}
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+            {{- end }}
+
+          {{- if .image }}
+          {{- $localImage := .image }}
+          {{- if kindIs "map" .image }}
+          {{- $localImage = "" }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "registry") }}
+          {{- $localImage = printf "%s/" .image.registry }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "repository") }}
+          {{- $localImage = printf "%s%s" $localImage .image.repository }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "tag") }}
+          {{- $localImage = printf "%s:%s" $localImage .image.tag }}
+          {{- end }}
+          image: "{{ $localImage }}"
+          {{- if and (kindIs "map" .image) (hasKey .image "pullPolicy") }}
+          imagePullPolicy: {{ .image.pullPolicy | default $.Values.image.pullPolicy }}
+          {{- else }}
+          imagePullPolicy: {{ .imagePullPolicy | default $.Values.image.pullPolicy }}
+          {{- end }}
+          {{- else }}
+          {{- $imageRegistry := $.Values.image.registry | default "" }}
+          {{- $imageRepository := $.Values.image.repository | default "" }}
+          {{- if $imageRegistry }}
+          {{- $imageRepository = printf "%s/%s" $imageRegistry $.Values.image.repository }}
+          {{- end }}
+          {{- $imageTag := $.Values.image.tag | default "latest" }}
+          image: "{{ $imageRepository }}:{{ $imageTag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- end }}
+
+          {{- if .args }}
+          args:
+            {{- toYaml .args | nindent 12 }}
+          {{- end }}
+
+          {{- if .command }}
+          command:
+            {{- toYaml .command | nindent 12 }}
+          {{- end }}
+
+          env:
+          {{- if $.Values.secretManager.enabled }}
+          {{- range $.Values.secretManager.secrets }}
+          {{- $secretName := .name | lower | replace "/" "-" }}
+          {{- range .env }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name:  {{ $secretName }}
+                  key: {{ .key | default .name }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+
+          {{- with $.Values.env }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .env }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- if .ports }}
+          ports:
+          {{ toYaml .ports | nindent 12 }}
+          {{- else }}
+          ports:
+            - containerPort: {{ $.Values.default.containerPort }}
+          {{- end }}
+
+          {{- if .livenessProbe }}
+          livenessProbe:
+          {{- toYaml .livenessProbe | nindent 10 }}
+          {{- else if and (eq $containerId 1) ($.Values.livenessProbe) }}
+          livenessProbe:
+          {{- toYaml $.Values.livenessProbe | nindent 12 }}
+          {{- end }}
+
+          {{- if .readinessProbe }}
+          readinessProbe:
+          {{- toYaml .readinessProbe | nindent 10 }}
+          {{- else if and (eq $containerId 1) ($.Values.readinessProbe) }}
+          readinessProbe:
+          {{- toYaml $.Values.readinessProbe | nindent 12 }}
+          {{- end }}
+
+          {{- if .startupProbe }}
+          startupProbe:
+          {{- toYaml .startupProbe | nindent 10 }}
+          {{- else if and (eq $containerId 1) ($.Values.startupProbe) }}
+          startupProbe:
+          {{- toYaml $.Values.startupProbe | nindent 12 }}
+          {{- end }}
+
+          resources:
+            {{- if .resources }}
+            {{- toYaml .resources | nindent 12 }}
+            {{- else if $.Values.resources }}
+            {{- toYaml $.Values.resources | nindent 12 }}
+            {{- end }}
+
+          volumeMounts:
+            {{- if $.Values.secretManager.enabled }}
+            {{- range $.Values.secretManager.secrets }}
+            {{- $secretName := .name | lower | replace "/" "-"  }}
+            {{- range .mount }}
+            - name: {{ $secretName }}-{{ .name }}
+              mountPath: {{ .path }}
+              subPath: {{ .key | default .name }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if $.Values.config }}
+            {{- range $.Values.config }}
+            {{- if .mountPath }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              subPath: {{ .name }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if $.Values.persistence.mounts }}
+            {{- range $.Values.persistence.mounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              {{- if .readOnly }}
+              readOnly: {{ .readOnly }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+
+            {{- if .volumeMounts }}
+            {{- toYaml .volumeMounts | nindent 12 }} 
+            {{- end }}
+
+      {{- end }}
+      {{/* END OF Container template configuration */}}
+      {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.affinity }} 
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      volumes:
+        {{- if $.Values.secretManager.enabled }}
+        {{- range $.Values.secretManager.secrets }}
+        {{- $secretName := .name | lower | replace "/" "-" }}
+        {{- range .mount }}
+        - name: {{ $secretName }}-{{ .name }}
+          secret:
+            secretName: {{ $secretName }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+
+        {{- if .Values.config }}
+        {{- range .Values.config }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ include "chart.name" $ }}-{{ .name }}
+        {{- end }}
+        {{- end }}
+
+        {{- if .Values.persistence.volumes }}
+        {{ toYaml .Values.persistence.volumes | nindent 8 }}
+        {{- end }}
+
+        {{- if and .Values.persistence .Values.persistence.storage }}
+        {{- range .Values.persistence.storage }}
+        - name: {{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ include "chart.name" $ }}-{{ .name }}
+        {{- end }}
+        {{- end }}
+
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end -}}

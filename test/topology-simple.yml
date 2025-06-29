@@ -1,0 +1,14 @@
+default:
+  enabledContainers: "first:second"
+  disabledContainers: "second"
+
+containers:
+  - name: first
+  - name: second
+  - name: third
+
+topology:
+  containers:
+    - name: first
+    - name: second
+    - name: third

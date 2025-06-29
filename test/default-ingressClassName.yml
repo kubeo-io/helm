@@ -1,0 +1,13 @@
+default:
+  host: my-internal-host 
+  ingressClassName: nginx-internal
+  path: /api/v1
+  containerPort: 3000
+
+env:
+
+  - name: ENV_1
+    valueFrom:
+      secretKeyRef:
+        name: shared-secrets
+        key: ENV_1

@@ -1,0 +1,177 @@
+{{- if .Values.jobs }}
+{{- range .Values.jobs }}
+{{- if .schedule }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "chart.name" $ }}-{{ .name }}
+  labels:
+    {{- include "chart.labels" $ | nindent 4 }}
+{{- if .annotations }}
+  annotations:
+{{- toYaml .annotations | nindent 4 }}
+{{- end }}
+spec:
+  schedule: {{ .schedule }}
+  successfulJobsHistoryLimit: {{ .successfulJobsHistoryLimit | default 1 }} 
+  failedJobsHistoryLimit: {{ .failedJobsHistoryLimit | default 1 }}
+  suspend: {{ .suspend | default false }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: {{ .restartPolicy | default "Never"}}
+          {{- with $.Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ $.Values.serviceAccount.name | default $.Values.default.serviceAccountName }}
+          containers:
+            - name: {{ .name }}
+              securityContext:
+                {{- if .securityContext }}
+                {{- toYaml .securityContext | nindent 16 }}
+                {{- else if $.Values.securityContext }}
+                {{- toYaml $.Values.securityContext | nindent 16 }}
+                {{- end }}
+
+              {{- if .image }}
+              {{- $localImage := .image }}
+              {{- if kindIs "map" .image }}
+              {{- $localImage = "" }}
+              {{- end }}
+              {{- if and (kindIs "map" .image) (hasKey .image "registry") }}
+              {{- $localImage = printf "%s/" .image.registry }}
+              {{- end }}
+              {{- if and (kindIs "map" .image) (hasKey .image "repository") }}
+              {{- $localImage = printf "%s%s" $localImage .image.repository }}
+              {{- end }}
+              {{- if and (kindIs "map" .image) (hasKey .image "tag") }}
+              {{- $localImage = printf "%s:%s" $localImage .image.tag }}
+              {{- end }}
+              image: "{{ $localImage }}"
+              {{- if and (kindIs "map" .image) (hasKey .image "pullPolicy") }}
+              imagePullPolicy: {{ .image.pullPolicy | default $.Values.image.pullPolicy }}
+              {{- else }}
+              imagePullPolicy: {{ .imagePullPolicy | default $.Values.image.pullPolicy }}
+              {{- end }}
+              {{- else }}
+              {{- $imageRegistry := $.Values.image.registry | default "" }}
+              {{- $imageRepository := $.Values.image.repository | default "" }}
+              {{- if $imageRegistry }}
+              {{- $imageRepository = printf "%s/%s" $imageRegistry $.Values.image.repository }}
+              {{- end }}
+              {{- $imageTag := $.Values.image.tag | default "latest" }}
+              image: "{{ $imageRepository }}:{{ $imageTag }}"
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              {{- end }}
+
+              {{- if .command }}
+              command:
+                {{- toYaml .command | nindent 16 }}
+              {{- end }}
+              {{- if .args }}
+              args:
+                {{- toYaml .args | nindent 16 }}
+              {{- end }}
+
+              {{- if .envFrom }}
+              envFrom:
+                {{- toYaml .envFrom | nindent 16 }}
+              {{- else }}
+              env:
+              {{- if $.Values.secretManager.enabled }}
+              {{- range $.Values.secretManager.secrets }}
+              {{- $secretName := .name | lower | replace "/" "-"}}
+              {{- range .env }}
+                - name: {{ .name }}
+                  valueFrom:
+                    secretKeyRef:
+                      name:  {{ $secretName }}-{{ $.Release.Name }}
+                      key: {{ .key | default .name }}
+              {{- end }}
+              {{- end }}
+              {{- end }}
+              {{- with $.Values.env }}
+              {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .env }}
+              {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- end }}
+
+              resources:
+                {{- if .resources }}
+                {{- toYaml .resources | nindent 16 }}
+                {{- else if $.Values.resources }}
+                {{- toYaml $.Values.resources | nindent 16 }}
+                {{- end }}
+
+              volumeMounts:
+                {{- if $.Values.secretManager.enabled }}
+                {{- range $.Values.secretManager.secrets }}
+                {{- $mountPath := .name }}
+                - name: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
+                  mountPath: {{ .mountPath | default $mountPath }}
+                  readOnly: true
+                {{- end }}
+                {{- end }}
+                {{- if $.Values.config }}
+                {{- range $.Values.config }}
+                {{- if .mountPath }}
+                - name: {{ .name }}
+                  mountPath: {{ .mountPath }}
+                  subPath: {{ .name }}
+                {{- end }}
+                {{- end }}
+                {{- end }}
+
+                {{- if $.Values.persistence.mounts }}
+                {{- range $.Values.persistence.mounts }}
+                - name: {{ .name }}
+                  mountPath: {{ .mountPath }}
+                  {{- if .readOnly }}
+                  readOnly: {{ .readOnly }}
+                  {{- end }}
+                {{- end }}
+                {{- end }}
+
+                {{- if .volumeMounts }}
+                {{- toYaml .volumeMounts | nindent 16 }} 
+                {{- end }}
+
+          volumes:
+            {{- if $.Values.secretManager.enabled }}
+            {{- range $.Values.secretManager.secrets }}
+            - name: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
+              csi:
+                driver: secrets-store.csi.k8s.io
+                readOnly: true
+                volumeAttributes:
+                  secretProviderClass: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
+            {{- end }}
+            {{- end }}
+            {{- if $.Values.config }}
+            {{- range $.Values.config }}
+            - name: {{ .name }}
+              configMap:
+                name: {{ include "chart.name" $ }}-{{ .name }}
+            {{- end }}
+            {{- end }}
+
+            {{- if $.Values.persistence.volumes }}
+            {{ toYaml $.Values.persistence.volumes | nindent 12 }}
+            {{- end }}
+
+            {{- if and $.Values.persistence $.Values.persistence.storage }}
+            {{- range $.Values.persistence.storage }}
+            - name: {{ .name }}
+              persistentVolumeClaim:
+                claimName: {{ include "chart.name" $ }}-{{ .name }}
+            {{- end }}
+            {{- end }}
+
+---  
+{{- end }}
+{{- end }}
+{{- end }}

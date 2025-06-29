@@ -1,0 +1,103 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "chart.fullname" . -}}
+{{- $svcPort := .Values.default.servicePort -}}
+{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else -}}
+apiVersion: extensions/v1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ $.Values.ingress.ingressClassName | default "nginx" }}
+{{- if and (.Values.ingress.tls) (.Values.ingress.tls.enabled) (eq .Values.ingress.tls.enabled true) }}
+  tls:
+    - hosts:
+      {{- if .Values.ingress.hosts }}
+      {{- range .Values.ingress.hosts }}
+        - {{ .host | quote }}
+      {{- end }}
+      {{- else }}
+        - {{ $.Values.default.host | quote }}
+      {{- end }}
+      secretName: {{ .Values.ingress.tls.secretName | default $.Values.default.host | quote }}
+{{- end }}
+  rules:
+  {{- if .Values.ingress.rules }}
+  {{- range .Values.ingress.rules }}
+    - host: {{ .host }}
+      http:
+        paths:
+        {{- if .path }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ .servicePort | default $svcPort }}
+        {{- end }}
+        {{- if .paths }}
+        {{- range .paths }}
+        - path: {{ .path }}
+          pathType: {{ .pathType | default "Prefix" }}
+          backend:
+            service:
+              name: {{ $fullName }}
+              port:
+                number: {{ .servicePort | default $svcPort }}
+        {{- end }}
+        {{- end }}
+
+  {{- end }}
+
+
+
+
+
+
+
+
+
+
+
+  {{- else }}
+  {{- if .Values.ingress.hosts }}
+  {{- range .Values.ingress.hosts }}
+    {{- $port := .port | default $svcPort }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+        {{- $defaultPath := list "/" -}}
+        {{- range .paths | default $defaultPath }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $port }}
+        {{- end }}
+  {{- end }}
+  {{- else }}
+    - host: {{ $.Values.default.host | quote }}
+      http:
+        paths:
+          - path: "/"
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+  {{- end }}
+  {{- end }}
+
+{{- end }}

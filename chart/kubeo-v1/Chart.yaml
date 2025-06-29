@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kubeo-v1
+description: Kubeo App Helm Chart
+type: application
+version: 1.0.1
+appVersion: 0.0.0

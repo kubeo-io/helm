@@ -1,0 +1,393 @@
+# Default values for chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+#POD Replicas
+#If HPA is enabled replicaCount will respect minReplicas
+replicaCount: 1
+
+#Deploy override
+nameOverride: ""
+fullnameOverride: ""
+
+#POD Image pull secrets
+# imagePullSecrets:
+#   - name: container.registy.io
+
+#Custom Deployment selector labels
+labels: {}
+#
+#Assign PODs https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+#nodeSelector:
+  #Describe your nodeSelector
+
+#affinity:
+  #Describe your affinity
+
+#Globa image configuration
+#in case of ONE container configuration, this is how to retrieve container image.
+#In case of MULTIPLE containers configuration, this are default configuration for each container to be overriten.
+
+#Example of multiple containers configuration.
+# containers:
+#   - name: first #Overrite only repository
+#     image:
+#       repository: container.registy.io/project/image
+
+#   - name: second #Overrite image at all
+#     image:
+#       repository: container.registy.io/project/image
+#       tag: latest
+#       pullPolicy: Always
+image:
+#  registry: container.registy.io if defined, is used as prefix for repository
+  repository: container.registy.io/project/image
+  tag: latest
+  pullPolicy: Always
+
+default:
+  host: hostname-for-ingress-or-route.chart.default.fqdn
+  serviceAccountName: default
+  enabledContainers: "*"
+  disabledContainers: null
+  containerPort: 8080
+  servicePort: 80
+  ingressClassName: nginx
+  #enabledJobs: "*"
+  #disabledJobs: null
+
+  #servicePort: 8080 TODO - Configure service to use this default configuration
+  #timezone: UTC - TODO Configure timezone to use this default configuration
+
+#Vault configuration
+# Example of vault section
+# vault:
+#   enabled: true
+#   type: hashicorp
+#   role: test-app-role #Hashcorp Kubernetes's role
+#   format: keyvalue #Fomat of rendered secrets: keyvalue, export or json 
+#   activeSync: false #true to keep secrets in sync. Default to false
+#   secrets:
+#     - store/path/to/secret1
+#     - store/path/to/secret2 #Path to additional secrets
+vault:
+  enabled: false
+  format: json
+  type: hashicorp
+
+#ConfigMap
+#Configure app based on either content of the file (data) or from file (loadFile) inside the 
+#helm chart template.
+config: {}
+  # - name: sample-properties
+  #   mountPath: /app/sample.properties
+  #   data: |-
+  #     #Sample Properties file.
+  #     FOO=bar
+  #     VAR1=VALUE1
+  # - name: sample-xml
+  #   mountPath: /app/sample-other-name.xml
+  #   data: |-
+  #     <note>
+  #       <to>Tove</to>
+  #       <from>Jani</from>
+  #       <heading>Reminder</heading>
+  #       <body>Don't forget me this weekend!</body>
+  #     </note>
+  # - name: sample-json
+  #   #mountPath: /app/sample.json #No mount for this example
+  #   data: |-
+  #     {
+  #       "key": "value"
+  #     }
+  # - name: sample-yaml
+  #   #mountPath: /app/sample.yaml #No mount for this example
+  #   data: |-
+  #     hello: world
+  #     planets:
+  #       - earth
+  #       - mars
+  # - name: example-config.txt
+  #   mountPath: /app/example-config.txt
+  #   loadFile: example-config.txt
+
+# Deployment service account
+serviceAccount:
+  create: false
+  #name: "default" If not defined is using default.serviceAccountName
+
+#
+# Container definition
+# This are the sections you can specify for each container:
+# - securityContext
+# - image
+# - imagePullPolicy
+# - env
+# - ports
+# - livenessProbe
+# - readinessProbe
+# - startupProbe
+# - resources
+# - volumeMounts
+#
+containers:
+  - name:  app
+    image: {} # Default to global image
+    env:   [] # Defaul to global env
+    ports:
+      - containerPort: 8080 # Default tcp/8080 Single container port
+
+#
+# Run Kubernetes Jobs
+#
+# Jobs are not enabled by default
+# jobs:
+#   - name:  job
+#     backoffLimit: 1
+#     restartPolicy: Never
+#     activeDeadlineSeconds: 100
+#     #command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+#     command: ["perl"]
+#     args: ["TestApp.Cli.dll", "migrate-database"]
+#     image: {} # Default to global image
+#     env:   [] # Defaul to global env
+
+resources: {}
+  # limits:
+  #   cpu: 2
+  #   memory: 2Gi
+  # requests:
+  #   cpu: 100m
+  #   memory: 1Gi
+
+#POD Disruption Budget
+#Define either minAvailable or maxUnavailable
+pdb:
+  enabled: false
+  # minAvailable: 2
+  # maxUnavailable: 1
+
+#
+# Defaults sections ONLY for first container (or single container configuration only)
+# Bellow sections: resources, livenessProbe, readinessProbe, startupProbe in values only applies
+# for first container (or single container configuration only).
+#
+
+livenessProbe: {}
+#   failureThreshold: 1
+#   httpGet:
+#     path: /actuator/health
+#     port: 8081
+#     scheme: HTTP
+#   initialDelaySeconds: 5
+#   periodSeconds: 8
+#   successThreshold: 1
+#   timeoutSeconds: 2
+
+readinessProbe: {}
+  # failureThreshold: 1
+  # httpGet:
+  #   path: /actuator/health
+  #   port: 8081
+  #   scheme: HTTP
+  # initialDelaySeconds: 10
+  # periodSeconds: 3
+  # successThreshold: 1
+  # timeoutSeconds: 2
+
+startupProbe: {}
+#   failureThreshold: 1
+#   httpGet:
+#     path: /actuator/health
+#     port: 8081
+#     scheme: HTTP
+#   initialDelaySeconds: 60
+#   periodSeconds: 3
+#   successThreshold: 1
+#   timeoutSeconds: 2
+
+
+#
+# POD Relative configuration sections
+#
+
+podSecurityContext: {}
+
+securityContext: {}
+
+annotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 25%
+
+service:
+  enabled: true
+  type: ClusterIP
+  #port: 8080 # Default service port
+
+#
+# Networking configuration section
+#
+
+route: {}
+#   enabled: false
+#   host: chart.dev.domain.com
+#   path: /
+#   tls:
+#     keyFile: private.key #File must be exist at Helm's chart directory
+#     certificateFile: certificate.pem #File must be exist at Helm's chart directory
+#     caCertificateFile: ca-certificate.pem #File must be exist at Helm's chart directory
+
+ingress: {}
+  # ingressClassName: nginx
+  # enabled: false
+  # annotations:
+  #   kubernetes.io/ingress.class: "nginx"
+  # hosts:
+  #   - host: wms-service.solistica.io
+  # tls:
+  #   enabled: true
+  #   secretName: star.domain.com
+  # rules:
+  #   - host: some-host.fqdn
+  #     # path: /
+  #     # servicePort: 8080
+  #     paths:
+  #       - path: /
+  #         servicePort: 8080
+  #       - path: /api
+  #         servicePort: 8081
+
+#
+# Global environment
+#
+
+# Adding env section to the root of YALM makes it replicated to 
+# all containers. Each container can have their env section also.
+
+# Example of global env:
+#env:
+  # - name: SPRING_REDIS_HOST
+  #   valueFrom:
+  #     configMapKeyRef:
+  #       name: chart-config
+  #       key: spring.redis.host
+
+#Example of container only env
+# containers:
+#   - name: first
+#     env:
+#       - name: FIRST_ENV
+#         value: "first container env"
+#   - name: second
+#     env:
+#       - name: SECOND_ENV
+#         value: "second container env"
+# env:
+#   - name: GLOBAL_ENV
+#     value: "globan container env to all containers"
+env: []
+
+#
+# POD Persistence
+#
+
+persistence:
+  volumes: []
+    # - name: config
+    #   emptyDir: {}
+    # - name: host-file-tmp
+    #   hostPath:
+    #     path: /tmp/xteve
+    #     type: DirectoryOrCreate
+
+  mounts: []
+    # - name: my-nfs
+    #   mountPath: /mnt/nfs-server
+    # - name: config
+    #   mountPath: /config
+    #   readOnly: false
+    # - name: host-file-tmp
+    #   mountPath: /dev/shm
+      
+  storage: []
+    # - name: my-nfs
+    #   type: oc-nfs
+    #   #existentPVName: pwb-nfs-server
+    #   capacity: 10Gi
+    #   accessMode: ReadWriteOnce
+    #   server: 10.10.10.2
+    #   remotePath: /shared
+    #   persistentVolumeReclaimPolicy: Retain
+
+
+vpa:
+  enabled: false
+  updateMode: "Off"   #Auto, Initial, Recreate or Off. Default is Off (just recomendations)
+
+hpa:
+  enabled: false
+  # maxReplicas: 3
+  # minReplicas: 1
+  # metrics:
+  #   - resource: memory      #Options: memory (Resource), cpu (resource)
+  #     type: Utilization    #Options: Utilization, averageValue, Value
+  #     target: 75         #Options: Value dependent on type
+  #   - resource: cpu
+  #     type: Utilization
+  #     target: 75
+
+  # behavior:
+  #   scaleDown:
+  #     stabilizationWindowSeconds: 60
+  #     policies:
+  #       - type: Pods
+  #         value: 1
+  #         periodSeconds: 60
+  #   scaleUp: 
+  #     policies:
+  #     - type: Pods
+  #       value: 1
+  #       periodSeconds: 90
+  #     selectPolicy: Max
+  #     stabilizationWindowSeconds: 120
+
+#
+# Enable/Disable service monitor for this deployment
+serviceMonitor:
+  enabled: false
+  endpoints:
+    - interval: 60s
+      path: /metrics
+      targetPort: 9161
+
+# Define any extra externa endpoint required
+serviceEndpoints: {}
+  # - addresses:
+  #     - ip: 192.168.0.2 #Any external or cluster's IPs address
+  #   ports:
+  #     - port: 9100
+  #       protocol: TCP
+
+secretManager:
+  enabled: false
+  type: external-secrets.io # Options: external-secrets.io
+  # secretStore: # For external-secrets.io
+  #   provider: awsSecretsManager
+  #   region: sa-east-1
+  #   authSecret: externa-secret-aws-${AWS_ACCOUNT_ID}
+  # secrets:
+  #   - name: "mysecret" # Name of the secret to be managed in Kubernetes / will be converted to - 
+  #     format: kv # Options: kv, json
+  #     env:
+  #       - name: FOO
+  #       - name: ANOTHER_SECRET

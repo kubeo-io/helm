@@ -1,0 +1,18 @@
+{{- if .Values.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+{{- if .Values.serviceMonitor.annotations }}
+  annotations:
+{{- toYaml .Values.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  endpoints:
+  {{ toYaml .Values.serviceMonitor.endpoints | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+{{- end -}}
