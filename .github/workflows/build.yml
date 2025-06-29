@@ -1,0 +1,55 @@
+name: Build Helm Chart
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/setup-helm@v4.2.0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Generate Semantic Version
+        id: version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          bump_each_commit: false
+          search_commit_body: true
+          debug: true
+          major_pattern: /^(major|break)/
+          minor_pattern: /^(feat|feature|refactor|revert|style)/
+
+      - name: Echo version
+        run: |
+          echo "Variables:"
+          echo "Previous version:   ${{ steps.version.outputs.previous_version }}"
+          echo "Generated version:  ${{ steps.version.outputs.version }}"
+          echo "Generated tag:      ${{ steps.version.outputs.version_tag }}"
+          
+      - name: Build
+        run: |
+          echo "${{ secrets.GH_TOKEN }} | helm registry login ghcr.io -u ${{ secrets.GH_USERNAME }} --password-stdin
+
+          CHART_NAME="kubeo-v1"
+          CHART_VERSION="${{ steps.version.outputs.version }}"
+          echo "Packaging chart..."
+          if [ -z "chart/${CHART_NAME}" ]; then
+              echo "Chart name is not provided. Exiting."
+              exit 1
+          fi 
+
+          helm package chart/${CHART_NAME} --version ${CHART_VERSION} -d .
+          if [ $? -ne 0 ]; then
+              echo "Failed to package the chart."
+              exit 1
+          fi
+
+          echo "Pushing chart to registry..."
+          helm push ${CHART_NAME}-${CHART_VERSION}.tgz oci://ghcr.io/kubeo-io
