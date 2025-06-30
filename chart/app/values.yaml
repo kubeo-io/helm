@@ -180,6 +180,7 @@ probes:
   #port: 8080 # Default to default.containerPort
   startupInitialDelaySeconds: 15
   startupPeriodSeconds: 5
+  startupFailureThreshold: 30
   initialDelaySeconds: 30
   periodSeconds: 60
   successThreshold: 1

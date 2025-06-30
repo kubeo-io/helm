@@ -406,7 +406,7 @@ spec:
 
           {{- if and (not $startupProbe) $.Values.probes.enabled $.Values.probes.startupEnabled }}
           startupProbe:
-            failureThreshold: {{ $.Values.probes.failureThreshold | default 3 }}
+            failureThreshold: {{ $.Values.probes.startupFailureThreshold | default 10 }}
             successThreshold: {{ $.Values.probes.successThreshold | default 1 }}
             initialDelaySeconds: {{ $.Values.probes.startupInitialDelaySeconds | default 30 }}
             periodSeconds: {{ $.Values.probes.startupPeriodSeconds | default 10 }}
