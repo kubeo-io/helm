@@ -1,0 +1,5 @@
+service:
+  enabled: false
+
+probes:
+  enabled: true

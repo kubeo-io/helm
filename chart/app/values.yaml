@@ -134,8 +134,8 @@ containers:
   - name:  app
     image: {} # Default to global image
     env:   [] # Defaul to global env
-    ports:
-      - containerPort: 8080 # Default tcp/8080 Single container port
+    ports: {} # Default to containerPort
+    #  - containerPort: 8080
 
 #
 # Run Kubernetes Jobs
@@ -166,6 +166,29 @@ pdb:
   enabled: false
   # minAvailable: 2
   # maxUnavailable: 1
+
+# If enabled, livenessProbe, readinessProbe and startupProbe will be rendered from this section and 
+# livenessProbe, readinessProbe and startupProbe (if configured) will be ignored.
+probes:
+  enabled: false
+  livenessEnabled: true
+  readinessEnabled: false
+  startupEnabled: true
+  #Default HTTP probes configuration
+  httpGet: /health
+  httpScheme: HTTP
+  #port: 8080 # Default to default.containerPort
+  startupInitialDelaySeconds: 15
+  startupPeriodSeconds: 5
+  initialDelaySeconds: 30
+  periodSeconds: 60
+  successThreshold: 1
+  failureThreshold: 1
+  timeoutSeconds: 2
+
+  # If enabled, livenessProbe, readinessProbe and startupProbe will be used.
+  # If not enabled, livenessProbe, readinessProbe and startupProbe will not be used.
+  # If not defined, livenessProbe, readinessProbe and startupProbe will not be used.
 
 #
 # Defaults sections ONLY for first container (or single container configuration only)

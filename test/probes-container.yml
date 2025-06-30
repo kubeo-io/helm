@@ -1,20 +1,20 @@
-image:
-  repository: curlimages/curl
-  tag: latest
-  pullPolicy: Always
+service:
+  enabled: false
 
-resources:
-  limits:
-    cpu: 2
-    memory: 2Gi
-  requests:
-    cpu: 100m
-    memory: 1Gi
-
-
-probesDefault:
-  livenessProbe:
-    
+containers:
+  - name: first
+  - name: second
+    image: some/second-image:latest
+    livenessProbe:
+      failureThreshold: 99
+      httpGet:
+        path: /actuator/health
+        port: 9999
+        scheme: HTTP
+      initialDelaySeconds: 99
+      periodSeconds: 99
+      successThreshold: 99
+      timeoutSeconds: 99
 
 livenessProbe:
   failureThreshold: 1

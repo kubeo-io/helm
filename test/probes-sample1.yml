@@ -1,0 +1,26 @@
+
+
+default:
+  containerPort: 5432
+  servicePort: 5432
+
+probes:
+  enabled: true
+  readinessEnabled: true
+  livenessEnabled: false
+  startupEnabled: false
+  httpGet: /areyouready
+  periodSeconds: 99
+  successThreshold: 99
+  failureThreshold: 99
+
+startupProbe:
+  failureThreshold: 55
+  httpGet:
+    path: /xxx
+    port: 8081
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 3
+  successThreshold: 1
+  timeoutSeconds: 2

@@ -340,28 +340,83 @@ spec:
             - containerPort: {{ $.Values.default.containerPort }}
           {{- end }}
 
+          {{- $livenessProbe := false }}
+          {{- $readinessProbe := false }}
+          {{- $startupProbe := false }}
+          
           {{- if .livenessProbe }}
+          {{- $livenessProbe = true }}
           livenessProbe:
-          {{- toYaml .livenessProbe | nindent 10 }}
+          {{- toYaml .livenessProbe | nindent 12 }}
           {{- else if and (eq $containerId 1) ($.Values.livenessProbe) }}
+          {{- $livenessProbe = true }}
           livenessProbe:
           {{- toYaml $.Values.livenessProbe | nindent 12 }}
           {{- end }}
 
           {{- if .readinessProbe }}
+          {{- $readinessProbe = true }}
           readinessProbe:
-          {{- toYaml .readinessProbe | nindent 10 }}
+          {{- toYaml .readinessProbe | nindent 12 }}
           {{- else if and (eq $containerId 1) ($.Values.readinessProbe) }}
+          {{- $readinessProbe = true }}
           readinessProbe:
           {{- toYaml $.Values.readinessProbe | nindent 12 }}
           {{- end }}
 
           {{- if .startupProbe }}
+          {{- $startupProbe = true }}
           startupProbe:
-          {{- toYaml .startupProbe | nindent 10 }}
+          {{- toYaml .startupProbe | nindent 12 }}
           {{- else if and (eq $containerId 1) ($.Values.startupProbe) }}
+          {{- $startupProbe = true }}
           startupProbe:
           {{- toYaml $.Values.startupProbe | nindent 12 }}
+            {{- end }}
+
+          {{- if and (not $livenessProbe) $.Values.probes.enabled $.Values.probes.livenessEnabled }}
+          livenessProbe:
+            failureThreshold: {{ $.Values.probes.failureThreshold | default 3 }}
+            successThreshold: {{ $.Values.probes.successThreshold | default 1 }}
+            initialDelaySeconds: {{ $.Values.probes.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ $.Values.probes.periodSeconds | default 10 }}
+            timeoutSeconds: {{ $.Values.probes.timeoutSeconds | default 5 }}
+            {{- if $.Values.probes.httpGet }}
+            httpGet:
+              path: {{ $.Values.probes.httpGet | default "/health" }}
+              port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
+              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+            {{- end }}
+          {{- end }}
+
+          {{- if and (not $readinessProbe) $.Values.probes.enabled $.Values.probes.readinessEnabled }}
+          readinessProbe:
+            failureThreshold: {{ $.Values.probes.failureThreshold | default 3 }}
+            successThreshold: {{ $.Values.probes.successThreshold | default 1 }}
+            initialDelaySeconds: {{ $.Values.probes.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ $.Values.probes.periodSeconds | default 10 }}
+            timeoutSeconds: {{ $.Values.probes.timeoutSeconds | default 5 }}
+            {{- if $.Values.probes.httpGet }}
+            httpGet:
+              path: {{ $.Values.probes.httpGet | default "/healthz" }}
+              port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
+              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+            {{- end }}
+          {{- end }}
+
+          {{- if and (not $startupProbe) $.Values.probes.enabled $.Values.probes.startupEnabled }}
+          startupProbe:
+            failureThreshold: {{ $.Values.probes.failureThreshold | default 3 }}
+            successThreshold: {{ $.Values.probes.successThreshold | default 1 }}
+            initialDelaySeconds: {{ $.Values.probes.startupInitialDelaySeconds | default 30 }}
+            periodSeconds: {{ $.Values.probes.startupPeriodSeconds | default 10 }}
+            timeoutSeconds: {{ $.Values.probes.timeoutSeconds | default 5 }}
+            {{- if $.Values.probes.httpGet }}
+            httpGet:
+              path: {{ $.Values.probes.httpGet | default "/healthz" }}
+              port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
+              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+            {{- end }}
           {{- end }}
 
           resources:
