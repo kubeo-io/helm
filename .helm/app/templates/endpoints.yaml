@@ -1,0 +1,10 @@
+{{- if .Values.serviceEndpoints -}}
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+subsets:
+{{ toYaml .Values.serviceEndpoints | nindent 2 }}
+{{- end -}}

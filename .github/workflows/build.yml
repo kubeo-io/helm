@@ -32,6 +32,15 @@ jobs:
           echo "Previous version:   ${{ steps.version.outputs.previous_version }}"
           echo "Generated version:  ${{ steps.version.outputs.version }}"
           echo "Generated tag:      ${{ steps.version.outputs.version_tag }}"
+
+      - name: Test
+        run: |
+          echo "Running tests..."
+          bash run-test.sh chart/app test
+          if [ $? -ne 0 ]; then
+              echo "Tests failed."
+              exit 1
+          fi
           
       - name: Build
         run: |

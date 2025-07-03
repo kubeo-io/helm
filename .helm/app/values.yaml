@@ -1,21 +1,21 @@
-# Default values for Kubeo app chart.
+# Default values for chart.
 # This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
 
 #POD Replicas
-#If HPA is enabled replicaCount will be defined from minReplicas
+#If HPA is enabled replicaCount will respect minReplicas
 replicaCount: 1
 
-#Global override
+#Deploy override
 nameOverride: ""
 fullnameOverride: ""
 
-#Image pull secrets
-#imagePullSecrets:
+#POD Image pull secrets
+# imagePullSecrets:
 #   - name: container.registy.io
 
 #Custom Deployment selector labels
 labels: {}
-
 #
 #Assign PODs https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
 #nodeSelector:
@@ -56,6 +56,7 @@ default:
   #enabledJobs: "*"
   #disabledJobs: null
 
+  #servicePort: 8080 TODO - Configure service to use this default configuration
   #timezone: UTC - TODO Configure timezone to use this default configuration
 
 #Vault configuration
@@ -261,8 +262,6 @@ service:
 # Networking configuration section
 #
 
-#OpenShift Route configuration
-# If you want to use OpenShift Route, uncomment the section bellow and configure it.
 route: {}
 #   enabled: false
 #   host: chart.dev.domain.com
@@ -354,14 +353,11 @@ persistence:
     #   remotePath: /shared
     #   persistentVolumeReclaimPolicy: Retain
 
-#Vertical Pod Autoscaler (VPA)
-# VPA is not enabled by default.
+
 vpa:
   enabled: false
   updateMode: "Off"   #Auto, Initial, Recreate or Off. Default is Off (just recomendations)
 
-#Horizontal Pod Autoscaler (HPA)
-# HPA is not enabled by default.
 hpa:
   enabled: false
   # maxReplicas: 3
@@ -389,8 +385,8 @@ hpa:
   #     selectPolicy: Max
   #     stabilizationWindowSeconds: 120
 
-# OpenShift ServiceMonitor configuration
-# ServiceMonitor is not enabled by default.
+#
+# Enable/Disable service monitor for this deployment
 serviceMonitor:
   enabled: false
   endpoints:
@@ -406,8 +402,6 @@ serviceEndpoints: {}
   #     - port: 9100
   #       protocol: TCP
 
-# Secret management configuration
-# This section is used to manage secrets in Kubernetes using a supported secret manager.
 secretManager:
   enabled: false
   type: external-secrets.io # Options: external-secrets.io

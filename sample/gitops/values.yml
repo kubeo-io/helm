@@ -1,0 +1,9 @@
+
+# No service exposed for this application
+service:
+  enabled: false
+
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent

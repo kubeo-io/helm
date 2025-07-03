@@ -1,0 +1,13 @@
+{{- if .Values.roles }}
+{{- range .Values.roles }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "chart.name" $ }}-{{ .name }}
+  labels:
+    {{- include "chart.labels" $ | nindent 4 }}
+rules:
+{{ toYaml .rules | nindent 2 }}
+---
+{{- end }}
+{{- end }}

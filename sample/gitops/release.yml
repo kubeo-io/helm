@@ -1,0 +1,7 @@
+# GitOps Helm Release operator 
+helm:
+  operation: upgrade
+  name: my-gitops-app
+  namespace: default
+  chart: oci://ghcr.io/kubeo-io/app
+  values: values.yml

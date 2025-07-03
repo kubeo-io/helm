@@ -1,0 +1,39 @@
+{{- if and .Values.persistence .Values.persistence.storage }}
+{{- range .Values.persistence.storage }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "chart.name" $ }}-{{ .name }}
+  labels:
+    "app.kubernetes.io/name": '{{ $.Release.Name }}'
+    "app.kubernetes.io/managed-by": "{{ $.Release.Service }}"
+    "app.kubernetes.io/instance": "{{ $.Release.Name }}"
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - {{ .accessMode }}
+  resources:
+    requests:
+      storage: {{ .capacity }}
+
+{{- if eq .type "oc-nfs" }}
+{{- if not .existentPVName }}
+  volumeName: {{ include "chart.name" $ }}-{{ .name }}
+{{- else }}
+  volumeName: {{ .existentPVName }}
+{{- end }}
+  storageClassName: ""
+{{- end }}
+
+{{- if eq .type "pvc" }}
+  volumeMode: Filesystem
+  storageClassName: {{ .storageClassName | default "" | quote }}
+{{- end }}
+
+{{- if eq .type "nfs-ganesha" }}
+  storageClassName: {{ .storageClassName | default "nfs" | quote }}
+{{- end }}
+---
+{{- end }}
+{{- end }}
