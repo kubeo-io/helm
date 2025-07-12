@@ -311,6 +311,11 @@ spec:
             {{- toYaml .command | nindent 12 }}
           {{- end }}
 
+          {{- if .lifecycle }}
+          lifecycle:
+            {{- toYaml .lifecycle | nindent 12 }}
+          {{- end }}
+
           env:
           {{- if $.Values.secretManager.enabled }}
           {{- range $.Values.secretManager.secrets }}

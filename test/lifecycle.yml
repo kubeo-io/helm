@@ -1,0 +1,36 @@
+
+labels:
+  app.kubernetes.io/environment: production
+
+default:
+  containerPort: 8000
+
+env:
+  - name: MCP_SERVER_NAME
+    value: "mcpservername"
+  - name: MCP_SERVER_PORT
+    value: "8080"
+  - name: MCP_SERVER_TRANSPORT
+    value: "sse"
+  - name: API_SERVER_URL
+    value: "http://api-server:8080"
+
+ingress:
+  enabled: false
+
+containers:
+  - name: mcp-server
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1024Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    lifecycle:
+      postStart:
+        exec:
+          command: ["/mcp/kube-mcp", "register"]
+      preStop:
+        exec:
+          command: ["/mcp/kube-mcp", "unregister"]
