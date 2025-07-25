@@ -8,10 +8,10 @@ metadata:
   labels:
     {{- include "chart.labels" $ | nindent 4 }}
 subjects:
-- kind: ServiceAccount
-  name: {{ $.Values.serviceAccount.name | default $.Values.default.serviceAccountName }}
-  namespace: {{ $.Release.Namespace }}
-  apiGroup: ""
+  - kind: ServiceAccount
+    name: {{ $.Values.serviceAccount.name | default $.Values.default.serviceAccountName }}
+    namespace: {{ $.Release.Namespace }}
+    apiGroup: ""
 roleRef:
   kind: Role
   name: {{ include "chart.name" $ }}-{{ .name }}

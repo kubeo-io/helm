@@ -161,6 +161,9 @@ spec:
           {{- with .env }}
           {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- with $.Values.extraEnv }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
 
           resources:
             {{- if .resources }}
@@ -334,6 +337,9 @@ spec:
           {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .env }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $.Values.extraEnv }}
           {{- toYaml . | nindent 12 }}
           {{- end }}
 

@@ -308,6 +308,9 @@ ingress: {}
   #       name: chart-config
   #       key: spring.redis.host
 
+#extraEnv:
+  # - name: GLOBAL_ENV
+  #   value: "global container env to all containers"
 #Example of container only env
 # containers:
 #   - name: first
