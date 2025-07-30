@@ -103,6 +103,29 @@ NAME       	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHA
 nginx-teste	default  	3       	2025-07-02 17:07:16.680189 -0300 -03	deployed	app-1.1.1	1.2.3 
 ```
 
+## Daily examples
+
+### Shell with storage
+
+```bash
+cat <<EOF > values.yml
+image:
+  repository: ubuntu
+  tag: latest
+persistence:
+  mounts:
+    - name: data
+      mountPath: /data
+  storage:
+    - name: data
+      type: pvc
+      capacity: 200Gi
+      accessMode: ReadWriteOnce
+      persistentVolumeReclaimPolicy: Retain
+EOF
+helm upgrade -i shell oci://ghcr.io/kubeo-io/app -f values.yml
+````
+
 ## License
 
 Kubeo Helm Charts is released under Apache License.
