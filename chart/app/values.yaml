@@ -407,6 +407,20 @@ serviceEndpoints: {}
   #     - port: 9100
   #       protocol: TCP
 
+clusterSecretStore:
+  enabled: false
+  # provider:
+  #   aws:
+  #     region: us-east-1
+  #     authSecret: externa-secret-aws-123456
+
+  # secrets:
+  #   - name: "mysecret" # Name of the secret to be managed in Kubernetes / will be converted to - 
+  #     namespaceSelectors:
+  #       - matchLabels:
+  #           cool: label
+  #     format: kv # Options: kv, json
+
 secretManager:
   enabled: false
   type: external-secrets.io # Options: external-secrets.io
