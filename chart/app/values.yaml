@@ -251,9 +251,9 @@ affinity: {}
 
 updateStrategy:
   type: RollingUpdate
-  rollingUpdate:
-    maxSurge: 25%
-    maxUnavailable: 25%
+  # rollingUpdate:
+  #   maxSurge: 25%
+  #   maxUnavailable: 25%
 
 service:
   enabled: true
