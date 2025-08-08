@@ -202,6 +202,9 @@ spec:
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
             {{- end }}
             {{- end }}
 
@@ -467,6 +470,9 @@ spec:
               {{- if .readOnly }}
               readOnly: {{ .readOnly }}
               {{- end }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
             {{- end }}
             {{- end }}
 
@@ -509,7 +515,7 @@ spec:
         {{- end }}
 
         {{- if .Values.persistence.volumes }}
-        {{ toYaml .Values.persistence.volumes | nindent 8 }}
+        {{- toYaml .Values.persistence.volumes | nindent 8 }}
         {{- end }}
 
         {{- if and .Values.persistence .Values.persistence.storage }}
