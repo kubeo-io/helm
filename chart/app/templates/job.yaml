@@ -80,22 +80,29 @@ spec:
 
           {{- if .image }}
           {{- $localImage := .image }}
-          {{- if .image.registry  }}
-          {{- $localImage := .image.registry | append "/" }}
+          {{- if kindIs "map" .image }}
+          {{- $localImage = "" }}
           {{- end }}
-          {{- if .image.repository  }}
-          {{- $localImage := $localImage .image.repository }}
+          {{- if and (kindIs "map" .image) (hasKey .image "registry") }}
+          {{- $localImage = printf "%s/" .image.registry }}
           {{- end }}
-          {{- if .image.tag  }}
-          {{- $localImage := $localImage | append ":" .image.tag }}
+          {{- if and (kindIs "map" .image) (hasKey .image "repository") }}
+          {{- $localImage = printf "%s%s" $localImage .image.repository }}
+          {{- end }}
+          {{- if and (kindIs "map" .image) (hasKey .image "tag") }}
+          {{- $localImage = printf "%s:%s" $localImage .image.tag }}
           {{- end }}
           image: "{{ $localImage }}"
+          {{- if and (kindIs "map" .image) (hasKey .image "pullPolicy") }}
           imagePullPolicy: {{ .image.pullPolicy | default $.Values.image.pullPolicy }}
           {{- else }}
+          imagePullPolicy: {{ .imagePullPolicy | default $.Values.image.pullPolicy }}
+          {{- end }}
+          {{- else }}
           {{- $imageRegistry := $.Values.image.registry | default "" }}
-          {{- $imageRepository := $.Values.image.imageRepository | default "" }}
+          {{- $imageRepository := $.Values.image.repository | default "" }}
           {{- if $imageRegistry }}
-          {{- $imageRepository := $imageRegistry | trimSuffix "/" | append "/" $.Values.image.repository }}
+          {{- $imageRepository = printf "%s/%s" $imageRegistry $.Values.image.repository }}
           {{- end }}
           {{- $imageTag := $.Values.image.tag | default "latest" }}
           image: "{{ $imageRepository }}:{{ $imageTag }}"
