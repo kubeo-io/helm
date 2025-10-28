@@ -141,16 +141,6 @@ spec:
                 {{- end }}
 
           volumes:
-            {{- if $.Values.secretManager.enabled }}
-            {{- range $.Values.secretManager.secrets }}
-            - name: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
-              csi:
-                driver: secrets-store.csi.k8s.io
-                readOnly: true
-                volumeAttributes:
-                  secretProviderClass: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
-            {{- end }}
-            {{- end }}
             {{- if $.Values.config }}
             {{- range $.Values.config }}
             - name: {{ .name }}
