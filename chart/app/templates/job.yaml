@@ -149,7 +149,6 @@ spec:
             {{- end }}
 
           volumeMounts:
-
             {{- if $.Values.secretManager.enabled }}
             {{- range $.Values.secretManager.secrets }}
             {{- $secretName := .name | lower | replace "/" "-"  }}

@@ -110,12 +110,16 @@ spec:
               volumeMounts:
                 {{- if $.Values.secretManager.enabled }}
                 {{- range $.Values.secretManager.secrets }}
-                {{- $mountPath := .name }}
-                - name: {{ .name | lower | replace "/" "-"}}-{{ $.Release.Name }}
-                  mountPath: {{ .mountPath | default $mountPath }}
+                {{- $secretName := .name | lower | replace "/" "-" }}
+                {{- range .mount }}
+                - name: {{ $secretName }}-{{ .name }}
+                  mountPath: {{ .path }}
+                  subPath: {{ .key | default .name }}
                   readOnly: true
                 {{- end }}
                 {{- end }}
+                {{- end }}
+
                 {{- if $.Values.config }}
                 {{- range $.Values.config }}
                 {{- if .mountPath }}
@@ -141,6 +145,16 @@ spec:
                 {{- end }}
 
           volumes:
+            {{- if $.Values.secretManager.enabled }}
+            {{- range $.Values.secretManager.secrets }}
+            {{- $secretName := .name | lower | replace "/" "-" }}
+            {{- range .mount }}
+            - name: {{ $secretName }}-{{ .name }}
+              secret:
+                secretName: {{ $secretName }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
             {{- if $.Values.config }}
             {{- range $.Values.config }}
             - name: {{ .name }}
