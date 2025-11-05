@@ -16,7 +16,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  ingressClassName: {{ $.Values.ingress.ingressClassName | default "nginx" }}
+  ingressClassName: {{ $.Values.ingress.ingressClassName | default $.Values.default.ingressClassName }}
 {{- if and (.Values.ingress.tls) (.Values.ingress.tls.enabled) (eq .Values.ingress.tls.enabled true) }}
   tls:
     - hosts:
@@ -28,6 +28,14 @@ spec:
         - {{ $.Values.default.host | quote }}
       {{- end }}
       secretName: {{ .Values.ingress.tls.secretName | default $.Values.default.host | quote }}
+{{- end }}
+{{- if and (.Values.ingress.customTls) (eq .Values.ingress.tls.enabled false) }}
+  tls:
+    {{- range .Values.ingress.customTls.hosts }}
+    - hosts:
+      - {{ .host | quote }}
+      secretName: {{ .secretName | default "" }}
+    {{- end }}
 {{- end }}
   rules:
   {{- if .Values.ingress.rules }}
@@ -57,17 +65,6 @@ spec:
         {{- end }}
 
   {{- end }}
-
-
-
-
-
-
-
-
-
-
-
   {{- else }}
   {{- if .Values.ingress.hosts }}
   {{- range .Values.ingress.hosts }}
@@ -75,7 +72,7 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
-        {{- $defaultPath := list "/" -}}
+        {{- $defaultPath := list $.Values.default.host -}}
         {{- range .paths | default $defaultPath }}
           - path: {{ . }}
             pathType: Prefix
@@ -90,7 +87,7 @@ spec:
     - host: {{ $.Values.default.host | quote }}
       http:
         paths:
-          - path: "/"
+          - path: {{ $.Values.default.path | quote }}
             pathType: Prefix
             backend:
               service:

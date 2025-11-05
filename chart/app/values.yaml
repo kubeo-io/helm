@@ -47,6 +47,7 @@ image:
 
 default:
   host: hostname-for-ingress-or-route.chart.default.fqdn
+  path: /
   serviceAccountName: default
   enabledContainers: "*"
   disabledContainers: null
