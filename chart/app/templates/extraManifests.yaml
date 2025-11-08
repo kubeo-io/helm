@@ -1,0 +1,18 @@
+{{- if .Values.extraManifests }}
+{{- range $index, $manifest := .Values.extraManifests }}
+{{- if $manifest }}
+---
+{{- $metadata := $manifest.metadata | default dict }}
+{{- $labels := $metadata.labels | default dict }}
+{{- $newLabels := include "chart.labels" $ | fromYaml }}
+{{- $mergedLabels := merge $newLabels $labels }}
+{{- $manifest = set $manifest "metadata" (set $metadata "labels" $mergedLabels) }}
+
+{{- if not $metadata.namespace }}
+{{- $manifest = set $manifest "metadata" (set $metadata "namespace" $.Release.Namespace) }}
+{{- end }}
+
+{{ toYaml $manifest }}
+{{- end }}
+{{- end }}
+{{- end }}
