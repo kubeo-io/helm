@@ -435,3 +435,28 @@ secretManager:
   #     env:
   #       - name: FOO
   #       - name: ANOTHER_SECRET
+
+# Extra Manifests
+# Add any additional Kubernetes resources to be deployed along with this chart.
+# This is useful for creating custom resources.
+# (e.g., PrometheusRule, Kong, NetworkPolicies, additional Services, CRDs, etc.)
+# Each manifest must be a valid Kubernetes resource definition in YAML format.
+#
+# Examples:
+# extraManifests:
+#   - apiVersion: monitoring.coreos.com/v1
+#     kind: PrometheusRule
+#     metadata:
+#       name: my-app-alerts
+#     spec:
+#       groups:
+#       - name: my-app.rules
+#         rules:
+#         - alert: AppDown
+#           expr: up{job="my-app"} == 0
+#           for: 5m
+#           labels:
+#             severity: critical
+#           annotations:
+#             summary: "Application my-app is down"
+extraManifests: []
