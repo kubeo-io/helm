@@ -1,0 +1,9 @@
+# probes.httpScheme must reach liveness, readiness and startup probes.
+# expect: scheme: HTTPS
+probes:
+  enabled: true
+  livenessEnabled: true
+  readinessEnabled: true
+  startupEnabled: true
+  httpGet: /health
+  httpScheme: HTTPS

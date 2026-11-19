@@ -399,7 +399,7 @@ spec:
             httpGet:
               path: {{ $.Values.probes.httpGet | default "/health" }}
               port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
-              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+              scheme: {{ $.Values.probes.httpScheme | default "HTTP" }}
             {{- end }}
           {{- end }}
 
@@ -414,7 +414,7 @@ spec:
             httpGet:
               path: {{ $.Values.probes.httpGet | default "/healthz" }}
               port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
-              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+              scheme: {{ $.Values.probes.httpScheme | default "HTTP" }}
             {{- end }}
           {{- end }}
 
@@ -429,7 +429,7 @@ spec:
             httpGet:
               path: {{ $.Values.probes.httpGet | default "/healthz" }}
               port: {{ $.Values.probes.port | default $.Values.default.containerPort }}
-              scheme: {{ $.Values.probes.httiScheme | default "HTTP" }}
+              scheme: {{ $.Values.probes.httpScheme | default "HTTP" }}
             {{- end }}
           {{- end }}
 
