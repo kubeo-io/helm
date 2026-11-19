@@ -1,0 +1,3 @@
+# Must FAIL: httpRoute enabled without parentRefs.
+httpRoute:
+  enabled: true
