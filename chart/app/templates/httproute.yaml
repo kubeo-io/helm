@@ -1,0 +1,66 @@
+{{- /*
+Gateway API HTTPRoute.
+
+Same values shape as the `httpRoute:` block of the official `helm create`
+scaffold (Helm >= 3.17), plus defaults that keep the minimal config short:
+  - hostnames  -> [default.host]
+  - rules      -> one rule, PathPrefix default.path, to this chart's Service
+  - backendRefs in a rule -> this chart's Service and port; a backendRef
+    without name/port inherits them
+  - rules with a RequestRedirect filter get no default backendRefs
+*/ -}}
+{{- if and .Values.httpRoute .Values.httpRoute.enabled -}}
+{{- $fullName := include "chart.fullname" . -}}
+{{- $svcPort := .Values.service.port | default .Values.default.servicePort -}}
+{{- if .Values.service.ports -}}
+{{- $svcPort = (first .Values.service.ports).port -}}
+{{- end -}}
+{{- if not .Values.httpRoute.parentRefs -}}
+{{- fail "httpRoute.parentRefs is required when httpRoute.enabled=true (the Gateway, and optionally its listener sectionName, the route attaches to)" -}}
+{{- end -}}
+{{- $defaultBackend := dict "name" $fullName "port" ($svcPort | int) -}}
+{{- $defaultRule := dict "matches" (list (dict "path" (dict "type" "PathPrefix" "value" (.Values.default.path | default "/")))) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    {{- with .Values.httpRoute.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.httpRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
+  hostnames:
+    {{- if .Values.httpRoute.hostnames }}
+    {{- range .Values.httpRoute.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+    {{- else }}
+    - {{ .Values.default.host | quote }}
+    {{- end }}
+  rules:
+    {{- range (.Values.httpRoute.rules | default (list $defaultRule)) }}
+    {{- $rule := omit . "backendRefs" }}
+    {{- $isRedirect := false }}
+    {{- range .filters }}
+    {{- if eq .type "RequestRedirect" }}{{ $isRedirect = true }}{{ end }}
+    {{- end }}
+    {{- $backendRefs := list }}
+    {{- range .backendRefs }}
+    {{- $backendRefs = append $backendRefs (merge (dict) . $defaultBackend) }}
+    {{- end }}
+    {{- if and (not $backendRefs) (not $isRedirect) }}
+    {{- $backendRefs = list $defaultBackend }}
+    {{- end }}
+    {{- if $backendRefs }}
+    {{- $_ := set $rule "backendRefs" $backendRefs }}
+    {{- end }}
+    - {{ toYaml $rule | nindent 6 | trim }}
+    {{- end }}
+{{- end }}

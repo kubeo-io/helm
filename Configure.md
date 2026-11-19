@@ -12,6 +12,7 @@ Read **default values** ```helm show values path/to/template``` file for complet
     - [Configuring Hashcorp Vault](#configuring-hashcorp-vault)
   - [Single container image and multiple container images](#single-container-image-and-multiple-container-images)
   - [Environment Variables](#environment-variables)
+  - [Gateway API (HTTPRoute)](#gateway-api-httproute)
   - [Resources](#resources)
     - [PDB - POD Disruption Budget](#pdb---pod-disruption-budget)
 
@@ -377,6 +378,60 @@ env:
   - name: "GLOBAL_ENV"
     value: "GLOBAL_VALUE"
 ```
+
+## Gateway API (HTTPRoute)
+
+Expose the app through a Gateway API implementation (Envoy Gateway, Istio, Cilium,
+NGINX Gateway Fabric...). The ```httpRoute``` block follows the same shape as the
+official ```helm create``` scaffold. The Gateway (listeners, TLS) belongs to the
+cluster; the chart only creates the route.
+
+Minimal configuration (hostname from ```default.host```, ```PathPrefix default.path``` to the chart Service):
+
+```yaml
+default:
+  host: app.example.com
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-app   # HTTPS listener of this host
+```
+
+Full example:
+
+```yaml
+httpRoute:
+  enabled: true
+  annotations: {}
+  labels: {}
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+      sectionName: https-app
+  hostnames:
+    - app.example.com
+    - www.app.example.com
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /metrics }
+      backendRefs:
+        - port: 9090          # name defaults to the chart Service
+    - matches:
+        - path: { type: PathPrefix, value: / }
+      timeouts:
+        request: 30s          # no backendRefs: chart Service and port
+```
+
+| Parameter | Default | Notes |
+|---|---|---|
+| ```enabled``` | ```false``` | Creates ```HTTPRoute``` (```gateway.networking.k8s.io/v1```). |
+| ```parentRefs``` | ```[]``` | **Required.** Rendering fails without it. |
+| ```hostnames``` | ```[default.host]``` | |
+| ```rules``` | one rule ```PathPrefix default.path``` | Any HTTPRoute rule field (```matches```, ```filters```, ```timeouts```...) is passed through. |
+| ```rules[].backendRefs``` | chart Service / port | Missing ```name``` or ```port``` are filled with the chart Service. Rules with a ```RequestRedirect``` filter get no default backend. |
 
 ## Resources
 

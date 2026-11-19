@@ -1,0 +1,11 @@
+# HTTPRoute with defaults only: host from default.host, PathPrefix / to the Service.
+default:
+  host: app.example.com
+
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: public
+      namespace: envoy-gateway-system
+# expect: kind: HTTPRoute
+# expect: - "app.example.com"

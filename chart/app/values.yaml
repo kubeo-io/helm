@@ -294,6 +294,42 @@ ingress: {}
   #       - path: /api
   #         servicePort: 8081
 
+# Gateway API HTTPRoute (Envoy Gateway, Istio, Cilium, NGINX Gateway Fabric...).
+# Same shape as the httpRoute block of the official `helm create` scaffold.
+# Defaults: hostnames -> [default.host]; rules -> PathPrefix default.path to
+# this chart's Service; backendRefs -> this chart's Service/port.
+# The Gateway itself (listeners, TLS) is owned by the cluster, not by the app.
+httpRoute:
+  enabled: false
+  annotations: {}
+  labels: {}
+  # Required when enabled. sectionName picks the Gateway listener (e.g. the
+  # HTTPS listener of the host) so HTTP->HTTPS redirects on the http listener keep working.
+  parentRefs: []
+  # - name: public
+  #   namespace: envoy-gateway-system
+  #   sectionName: https-my-app
+  hostnames: []
+  # - my-app.example.com
+  rules: []
+  # - matches:
+  #     - path:
+  #         type: PathPrefix
+  #         value: /api
+  #   backendRefs:
+  #     - port: 8081            # name defaults to this chart's Service
+  #   timeouts:
+  #     request: 30s
+  # - matches:
+  #     - path:
+  #         type: PathPrefix
+  #         value: /
+  # - filters:                  # redirect-only rule: no backendRefs are added
+  #     - type: RequestRedirect
+  #       requestRedirect:
+  #         hostname: example.com
+  #         statusCode: 301
+
 #
 # Global environment
 #
