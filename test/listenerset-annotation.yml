@@ -1,0 +1,19 @@
+# ListenerSet with cert-manager annotation mode, namespaced Issuer, custom secret.
+# expect: cert-manager.io/issuer: "my-issuer"
+# expect: name: custom-tls
+# expect: example.com/team: web
+# expect-not: kind: Certificate
+default:
+  host: app.example.com
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public
+    secretName: custom-tls
+    certificate:
+      mode: annotation
+      issuer: my-issuer
+    annotations:
+      example.com/team: web

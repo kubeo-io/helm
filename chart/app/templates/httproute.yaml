@@ -8,6 +8,7 @@ scaffold (Helm >= 3.17), plus defaults that keep the minimal config short:
   - backendRefs in a rule -> this chart's Service and port; a backendRef
     without name/port inherits them
   - rules with a RequestRedirect filter get no default backendRefs
+  - parentRefs -> this chart's ListenerSet when httpRoute.listenerSet.enabled
 */ -}}
 {{- if and .Values.httpRoute .Values.httpRoute.enabled -}}
 {{- $fullName := include "chart.fullname" . -}}
@@ -15,8 +16,12 @@ scaffold (Helm >= 3.17), plus defaults that keep the minimal config short:
 {{- if .Values.service.ports -}}
 {{- $svcPort = (first .Values.service.ports).port -}}
 {{- end -}}
-{{- if not .Values.httpRoute.parentRefs -}}
-{{- fail "httpRoute.parentRefs is required when httpRoute.enabled=true (the Gateway, and optionally its listener sectionName, the route attaches to)" -}}
+{{- $parentRefs := .Values.httpRoute.parentRefs -}}
+{{- if and (not $parentRefs) (include "chart.listenerSet.enabled" .) -}}
+{{- $parentRefs = list (dict "group" "gateway.networking.k8s.io" "kind" "ListenerSet" "name" $fullName) -}}
+{{- end -}}
+{{- if not $parentRefs -}}
+{{- fail "httpRoute.parentRefs is required when httpRoute.enabled=true, unless httpRoute.listenerSet.enabled=true (the Gateway, and optionally its listener sectionName, the route attaches to)" -}}
 {{- end -}}
 {{- $defaultBackend := dict "name" $fullName "port" ($svcPort | int) -}}
 {{- $defaultRule := dict "matches" (list (dict "path" (dict "type" "PathPrefix" "value" (.Values.default.path | default "/")))) -}}
@@ -35,14 +40,10 @@ metadata:
   {{- end }}
 spec:
   parentRefs:
-    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
+    {{- toYaml $parentRefs | nindent 4 }}
   hostnames:
-    {{- if .Values.httpRoute.hostnames }}
-    {{- range .Values.httpRoute.hostnames }}
+    {{- range (include "chart.httpRoute.hostnames" . | fromJsonArray) }}
     - {{ . | quote }}
-    {{- end }}
-    {{- else }}
-    - {{ .Values.default.host | quote }}
     {{- end }}
   rules:
     {{- range (.Values.httpRoute.rules | default (list $defaultRule)) }}

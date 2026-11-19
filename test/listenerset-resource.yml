@@ -1,0 +1,20 @@
+# ListenerSet + cert-manager Certificate (default mode). HTTPRoute attaches to the ListenerSet.
+# expect: kind: ListenerSet
+# expect: kind: Certificate
+# expect: name: https-app-example-com
+# expect: name: https-www-app-example-com
+# expect: kind: ClusterIssuer
+# expect: secretName: release-name-tls
+# expect: from: Same
+httpRoute:
+  enabled: true
+  hostnames:
+    - app.example.com
+    - www.app.example.com
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public
+      namespace: envoy-gateway-system
+    certificate:
+      clusterIssuer: letsencrypt

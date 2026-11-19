@@ -1,0 +1,22 @@
+# Wildcard host, certificate provided externally (mode none), explicit parentRefs win.
+# expect: name: https-wildcard-apps-example-com
+# expect: hostname: "*.apps.example.com"
+# expect: sectionName: https-wildcard-apps-example-com
+# expect-not: kind: Certificate
+# expect-not: cert-manager.io
+httpRoute:
+  enabled: true
+  hostnames:
+    - "*.apps.example.com"
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: release-name
+      sectionName: https-wildcard-apps-example-com
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public
+    secretName: wildcard-apps-tls
+    certificate:
+      mode: none

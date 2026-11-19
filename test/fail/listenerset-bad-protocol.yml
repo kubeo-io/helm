@@ -1,0 +1,10 @@
+# Must FAIL: invalid protocol.
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    protocol: TCP
+    gateway:
+      name: public
+    certificate:
+      mode: none
