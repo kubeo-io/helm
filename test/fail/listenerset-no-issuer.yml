@@ -1,0 +1,7 @@
+# Must FAIL: HTTPS listenerSet without issuer and certificate.mode != none.
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public

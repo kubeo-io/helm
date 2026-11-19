@@ -13,6 +13,7 @@ Read **default values** ```helm show values path/to/template``` file for complet
   - [Single container image and multiple container images](#single-container-image-and-multiple-container-images)
   - [Environment Variables](#environment-variables)
   - [Gateway API (HTTPRoute)](#gateway-api-httproute)
+    - [ListenerSet: the app owns its listeners and certificate](#listenerset-the-app-owns-its-listeners-and-certificate)
   - [Resources](#resources)
     - [PDB - POD Disruption Budget](#pdb---pod-disruption-budget)
 
@@ -432,6 +433,59 @@ httpRoute:
 | ```hostnames``` | ```[default.host]``` | |
 | ```rules``` | one rule ```PathPrefix default.path``` | Any HTTPRoute rule field (```matches```, ```filters```, ```timeouts```...) is passed through. |
 | ```rules[].backendRefs``` | chart Service / port | Missing ```name``` or ```port``` are filled with the chart Service. Rules with a ```RequestRedirect``` filter get no default backend. |
+
+### ListenerSet: the app owns its listeners and certificate
+
+With a shared Gateway, adding a hostname usually means editing the Gateway
+(platform team). A [ListenerSet](https://gateway-api.sigs.k8s.io/guides/listener-set/)
+(Gateway API v1.5+) lets the release bring its own listeners, one per hostname,
+attached to the shared Gateway. The chart then also creates the TLS certificate
+and attaches the HTTPRoute to the ListenerSet; ```parentRefs``` is not needed.
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - app.example.com
+    - www.app.example.com
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public
+      namespace: envoy-gateway-system
+    certificate:
+      clusterIssuer: letsencrypt
+```
+
+Renders a ```ListenerSet``` with listeners ```https-app-example-com``` and
+```https-www-app-example-com``` (port 443, TLS secret ```<fullname>-tls```), a
+cert-manager ```Certificate``` for both names and the ```HTTPRoute``` attached to the ListenerSet.
+
+| Parameter | Default | Notes |
+|---|---|---|
+| ```listenerSet.enabled``` | ```false``` | Requires ```httpRoute.enabled```. |
+| ```listenerSet.gateway.name``` / ```.namespace``` | | **Required** name. Namespace defaults to the release namespace. |
+| ```listenerSet.protocol``` | ```HTTPS``` | ```HTTPS``` or ```HTTP```. |
+| ```listenerSet.port``` | ```443``` / ```80``` | Depends on protocol. |
+| ```listenerSet.secretName``` | ```<fullname>-tls``` | TLS secret, in the release namespace. |
+| ```listenerSet.certificate.mode``` | ```resource``` | ```resource```: cert-manager ```Certificate```. ```annotation```: cert-manager annotation on the ListenerSet (cert-manager >= 1.20 with the ```ListenerSet``` feature gate). ```none```: secret managed elsewhere. |
+| ```listenerSet.certificate.clusterIssuer``` / ```.issuer``` | | Required for HTTPS unless ```mode: none```. |
+| ```listenerSet.annotations``` / ```.labels``` | ```{}``` | |
+
+Cluster prerequisites:
+
+- The Gateway accepts ListenerSets from the release namespace (```spec.allowedListeners```), e.g.
+  ```yaml
+  allowedListeners:
+    namespaces:
+      from: Selector
+      selector:
+        matchLabels:
+          gateway.example.com/public: "true"
+  ```
+- The deploy identity can manage ```listenersets``` (and ```httproutes```, ```certificates```) in the namespace.
+- Wildcard hostnames need a DNS-01 issuer (or ```mode: none``` with an existing secret).
+- If two releases claim the same hostname, Gateway listeners win, then the oldest ListenerSet; the loser reports ```Conflicted```.
 
 ## Resources
 

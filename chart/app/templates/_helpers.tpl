@@ -64,3 +64,36 @@ Create the name of the service account to use
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Gateway API: hostnames of the HTTPRoute / ListenerSet / Certificate (JSON list).
+Defaults to [default.host].
+*/}}
+{{- define "chart.httpRoute.hostnames" -}}
+{{- $hosts := .Values.httpRoute.hostnames | default (list .Values.default.host) -}}
+{{- toJson $hosts -}}
+{{- end -}}
+
+{{/*
+Gateway API: TLS secret of the ListenerSet listeners. Defaults to <fullname>-tls.
+*/}}
+{{- define "chart.listenerSet.secretName" -}}
+{{- .Values.httpRoute.listenerSet.secretName | default (printf "%s-tls" (include "chart.fullname" .)) -}}
+{{- end -}}
+
+{{/*
+Gateway API: listener name for a hostname, e.g. https-www-example-com,
+https-wildcard-apps-example-com. Args: (list protocol hostname)
+*/}}
+{{- define "chart.listenerSet.listenerName" -}}
+{{- $protocol := index . 0 | lower -}}
+{{- $host := index . 1 | replace "*" "wildcard" | replace "." "-" | lower -}}
+{{- printf "%s-%s" $protocol $host | trunc 253 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Gateway API: true when the ListenerSet is rendered.
+*/}}
+{{- define "chart.listenerSet.enabled" -}}
+{{- if and .Values.httpRoute .Values.httpRoute.enabled .Values.httpRoute.listenerSet .Values.httpRoute.listenerSet.enabled -}}true{{- end -}}
+{{- end -}}

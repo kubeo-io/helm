@@ -330,6 +330,26 @@ httpRoute:
   #         hostname: example.com
   #         statusCode: 301
 
+  # ListenerSet: the app brings its own listeners (one per hostname) and TLS
+  # certificate, attached to a shared Gateway. The Gateway must allow it
+  # (spec.allowedListeners). When enabled, parentRefs defaults to this ListenerSet.
+  listenerSet:
+    enabled: false
+    gateway: {}
+    #  name: public
+    #  namespace: envoy-gateway-system
+    protocol: HTTPS             # HTTPS or HTTP
+    # port: 443                 # default 443 (HTTPS) / 80 (HTTP)
+    # secretName: ""            # default <fullname>-tls
+    certificate:
+      mode: resource            # resource: cert-manager Certificate (stable)
+                                # annotation: cert-manager annotation on the ListenerSet
+                                #             (cert-manager >= 1.20, ListenerSet feature gate)
+                                # none: secretName is provided by someone else
+      clusterIssuer: ""         # or issuer: <namespaced Issuer>
+    annotations: {}
+    labels: {}
+
 #
 # Global environment
 #

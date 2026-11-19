@@ -1,0 +1,7 @@
+# Must FAIL: listenerSet without gateway.name.
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    certificate:
+      clusterIssuer: letsencrypt

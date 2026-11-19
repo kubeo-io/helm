@@ -1,0 +1,14 @@
+# ListenerSet with plain HTTP: port 80, no TLS, no Certificate.
+# expect: name: http-app-example-com
+# expect: port: 80
+# expect-not: tls:
+# expect-not: kind: Certificate
+default:
+  host: app.example.com
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    protocol: HTTP
+    gateway:
+      name: public

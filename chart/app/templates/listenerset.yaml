@@ -1,0 +1,103 @@
+{{- /*
+Gateway API ListenerSet: the app owns its listeners (one per hostname) and
+attaches them to a shared Gateway. The Gateway must allow it through
+spec.allowedListeners. The HTTPRoute attaches to this ListenerSet by default.
+
+TLS certificate (httpRoute.listenerSet.certificate.mode):
+  resource   -> cert-manager Certificate (stable API; default)
+  annotation -> cert-manager annotation on the ListenerSet (cert-manager >= 1.20
+                with the ListenerSet feature gate)
+  none       -> secret is provided by someone else
+*/ -}}
+{{- if include "chart.listenerSet.enabled" . -}}
+{{- $fullName := include "chart.fullname" . -}}
+{{- $ls := .Values.httpRoute.listenerSet -}}
+{{- $gw := $ls.gateway | default dict -}}
+{{- if not $gw.name -}}
+{{- fail "httpRoute.listenerSet.gateway.name is required when httpRoute.listenerSet.enabled=true" -}}
+{{- end -}}
+{{- $protocol := $ls.protocol | default "HTTPS" | upper -}}
+{{- if not (has $protocol (list "HTTPS" "HTTP")) -}}
+{{- fail (printf "httpRoute.listenerSet.protocol must be HTTPS or HTTP, got %s" $protocol) -}}
+{{- end -}}
+{{- $port := $ls.port | default (ternary 443 80 (eq $protocol "HTTPS")) -}}
+{{- $cert := $ls.certificate | default dict -}}
+{{- $mode := $cert.mode | default "resource" -}}
+{{- if not (has $mode (list "resource" "annotation" "none")) -}}
+{{- fail (printf "httpRoute.listenerSet.certificate.mode must be resource, annotation or none, got %s" $mode) -}}
+{{- end -}}
+{{- if and (eq $protocol "HTTPS") (ne $mode "none") (not (or $cert.clusterIssuer $cert.issuer)) -}}
+{{- fail "httpRoute.listenerSet.certificate.clusterIssuer (or .issuer) is required for HTTPS unless certificate.mode=none" -}}
+{{- end -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    {{- with $ls.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if or $ls.annotations (and (eq $protocol "HTTPS") (eq $mode "annotation")) }}
+  annotations:
+    {{- with $ls.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if and (eq $protocol "HTTPS") (eq $mode "annotation") }}
+    {{- if $cert.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $cert.clusterIssuer | quote }}
+    {{- else }}
+    cert-manager.io/issuer: {{ $cert.issuer | quote }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: {{ $gw.name }}
+    {{- with $gw.namespace }}
+    namespace: {{ . }}
+    {{- end }}
+  listeners:
+    {{- range (include "chart.httpRoute.hostnames" . | fromJsonArray) }}
+    - name: {{ include "chart.listenerSet.listenerName" (list $protocol .) }}
+      hostname: {{ . | quote }}
+      protocol: {{ $protocol }}
+      port: {{ $port }}
+      {{- if eq $protocol "HTTPS" }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ include "chart.listenerSet.secretName" $ }}
+      {{- end }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+    {{- end }}
+{{- if and (eq $protocol "HTTPS") (eq $mode "resource") }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "chart.listenerSet.secretName" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "chart.listenerSet.secretName" . }}
+  dnsNames:
+    {{- range (include "chart.httpRoute.hostnames" . | fromJsonArray) }}
+    - {{ . | quote }}
+    {{- end }}
+  issuerRef:
+    group: cert-manager.io
+    {{- if $cert.clusterIssuer }}
+    kind: ClusterIssuer
+    name: {{ $cert.clusterIssuer }}
+    {{- else }}
+    kind: Issuer
+    name: {{ $cert.issuer }}
+    {{- end }}
+{{- end }}
+{{- end }}

@@ -5,7 +5,8 @@
 # Usage:
 # run-test.sh /path/to/chart-dir /path/to/values-dir
 # Values in /path/to/values-dir/fail/*.yml must fail to render.
-# Lines "# expect: <text>" in a values file must appear in its rendered output.
+# Lines "# expect: <text>" in a values file must appear in its rendered output,
+# lines "# expect-not: <text>" must not.
 #
 
 failed=0
@@ -49,6 +50,16 @@ do
             failed=$((failed + 1))
         fi
     done < <(sed -n 's/^# expect: //p' $values)
+
+    # Assertions: lines "# expect-not: <text>" must NOT appear in the rendered output.
+    while IFS= read -r unexpected; do
+        if printf '%s\n' "$rendered" | grep -qF -- "$unexpected"; then
+            echo "  FAILED: Expect-not '$unexpected' in $values"
+            failed=$((failed + 1))
+        else
+            echo "  PASS: Expect-not '$unexpected' in $values"
+        fi
+    done < <(sed -n 's/^# expect-not: //p' $values)
 done
 
 # Values in <values-dir>/fail/ MUST fail to render (input validation).

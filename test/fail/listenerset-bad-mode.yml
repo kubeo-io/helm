@@ -1,0 +1,10 @@
+# Must FAIL: invalid certificate.mode.
+httpRoute:
+  enabled: true
+  listenerSet:
+    enabled: true
+    gateway:
+      name: public
+    certificate:
+      mode: magic
+      clusterIssuer: letsencrypt
